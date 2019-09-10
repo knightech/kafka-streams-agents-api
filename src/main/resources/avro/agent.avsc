@@ -1,0 +1,12 @@
+[
+{"namespace": "net.knightech.agent",
+ "type": "record",
+ "name": "Agent",
+ "fields": [
+     {"name": "id", "type": "string"},
+     {"name": "firstName", "type": "string"},
+     {"name": "lastName", "type": "string"},
+     {"name": "email", "type": "string"}
+ ]
+}
+]
