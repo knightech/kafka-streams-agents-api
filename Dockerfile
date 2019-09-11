@@ -1,5 +1,5 @@
 FROM openjdk:8-jdk-alpine
-ENV APP_FILE springbootkbe-0.0.5-SNAPSHOT.jar
+ENV APP_FILE kafka-streams-agents-api-1.0.0.jar
 ENV APP_HOME /usr/app
 
 COPY build/libs/*.jar $APP_HOME/
@@ -11,7 +11,7 @@ COPY prometheus-config/prometheus-logging.properties /prometheus-config/promethe
 
 WORKDIR $APP_HOME
 ENTRYPOINT ["sh", "-c"]
-ENV KAFKA_JMX_OPTS -Djava.util.logging.config.file=/prometheus-config/prometheus-logging.properties -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -javaagent:/tmp/jmx_prometheus_javaagent.jar=5182:/prometheus-config/prometheus-config.yml
+ENV KAFKA_JMX_OPTS -Djava.util.logging.config.file=/prometheus-config/prometheus-logging.properties -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -javaagent:/tmp/jmx_prometheus_javaagent.jar=5189:/prometheus-config/prometheus-config.yml
 CMD ["exec java $KAFKA_JMX_OPTS -jar $APP_FILE"]
 
-EXPOSE 8000 5182
+EXPOSE 8009 5189

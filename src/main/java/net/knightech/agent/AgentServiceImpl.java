@@ -16,14 +16,12 @@ import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.kstream.Predicate;
 import org.apache.kafka.streams.state.QueryableStoreTypes;
 import org.apache.kafka.streams.state.ReadOnlyKeyValueStore;
+import org.asynchttpclient.*;
 import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
 import org.springframework.web.context.request.async.DeferredResult;
-import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
 
 import javax.annotation.PostConstruct;
-import javax.ws.rs.container.AsyncResponse;
-import javax.ws.rs.core.Response;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Map;
@@ -31,21 +29,20 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 
-import static net.knightech.agent.MicroserviceUtils.*;
+import static net.knightech.agent.MicroserviceUtils.addShutdownHookAndBlock;
+import static net.knightech.agent.MicroserviceUtils.baseStreamsConfig;
 import static net.knightech.agent.domain.Schemas.Topics.AGENTS;
 import static net.knightech.agent.domain.beans.AgentBean.fromBean;
 import static net.knightech.agent.domain.beans.AgentBean.toBean;
 import static org.apache.kafka.streams.state.StreamsMetadata.NOT_AVAILABLE;
 
 @Slf4j
-@org.springframework.stereotype.Service
+@Service
 public class AgentServiceImpl implements AgentService {
 
   private static final String CALL_TIMEOUT = "10000";
   private static final String AGENTS_STORE_NAME = "agents-store";
   private final String SERVICE_APP_ID = getClass().getSimpleName();
-  private final int port;
-  private String host;
 
   private KafkaStreams streams = null;
   private MetadataService metadataService;
@@ -55,14 +52,6 @@ public class AgentServiceImpl implements AgentService {
   // different users and (b) periodically purge old entries from this map.
   private final Map<String, FilteredResponse<String, Agent>> outstandingRequests = new ConcurrentHashMap<>();
 
-  public AgentServiceImpl(final String host, final int port) {
-    this.host = host;
-    this.port = port;
-  }
-
-  public AgentServiceImpl(final String host) {
-    this(host, 0);
-  }
 
   /**
    * Create a table of agents which we can query. When the table is updated
@@ -176,8 +165,8 @@ public class AgentServiceImpl implements AgentService {
   }
 
   private boolean thisHost(final HostStoreInfo host) {
-    return host.getHost().equals(this.host) &&
-            host.getPort() == port;
+    return host.getHost().equals("localhost") &&
+            host.getPort() == 8009;
   }
 
   private void fetchFromOtherHost(final String path, DeferredResult<ResponseEntity<?>> deferredResult) {
@@ -185,18 +174,14 @@ public class AgentServiceImpl implements AgentService {
     log.info("Chaining GET to a different instance: " + path);
 
 
-    WebClient webClient = WebClient.builder()
-            .baseUrl(path)
-            .build();
+    AsyncHttpClient client = Dsl.asyncHttpClient();
+    BoundRequestBuilder request = client.prepareGet(path);
 
     try {
 
-      final Mono<AgentBean> bean = webClient.get()
-              .uri(path)
-              .retrieve()
-              .bodyToMono(AgentBean.class);
+      ListenableFuture<Response> responseFuture = request.execute();
 
-      deferredResult.setResult(ResponseEntity.of(Optional.ofNullable(bean.block())));
+      deferredResult.setResult(ResponseEntity.of(Optional.ofNullable(responseFuture.get())));
 
     } catch (final Exception swallowed) {
       // do nothing
@@ -246,10 +231,6 @@ public class AgentServiceImpl implements AgentService {
     }
   }
 
-  public int port() {
-    return port;
-  }
-
   private HostStoreInfo getHostForAgentId(final String agentId) {
     return metadataService
             .streamsMetadataForStoreAndKey(AGENTS_STORE_NAME, agentId, Serdes.String().serializer());
@@ -272,7 +253,7 @@ public class AgentServiceImpl implements AgentService {
   }
 
   @PostConstruct
-  public static void initBroker() throws Exception {
+  public void initBroker() throws Exception {
 
     final String bootstrapServers = "http://192.168.5.31:9092";
     final String schemaRegistryUrl = "http://192.168.5.31:8081";
@@ -280,8 +261,7 @@ public class AgentServiceImpl implements AgentService {
     final String restPort = "8001";
 
     Schemas.configureSerdesWithSchemaRegistryUrl(schemaRegistryUrl);
-    final AgentServiceImpl service = new AgentServiceImpl(restHostname, Integer.valueOf(restPort));
-    service.start(bootstrapServers, "/tmp/kafka-streams");
-    addShutdownHookAndBlock(service);
+    start(bootstrapServers, "/tmp/kafka-streams");
+    addShutdownHookAndBlock(this);
   }
 }

@@ -24,22 +24,22 @@ spec:
         version: v1
       annotations:
         prometheus.io/scrape: "true"
-        prometheus.io/port: "8001"
+        prometheus.io/port: "8009"
     spec:
       containers:
         - name: agents
           image: petecknight/agents:1.0.0
           ports:
-            - containerPort: 8001
+            - containerPort: 8009
           readinessProbe:
             httpGet:
               path: /
-              port: 8001
+              port: 8009
             initialDelaySeconds: 20
             periodSeconds: 5
           livenessProbe:
             httpGet:
               path: /
-              port: 8001
+              port: 8009
             initialDelaySeconds: 20
             periodSeconds: 5

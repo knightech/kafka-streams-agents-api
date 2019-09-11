@@ -1,6 +1,5 @@
 package net.knightech.agent;
 
-import lombok.AllArgsConstructor;
 import net.knightech.agent.domain.beans.AgentBean;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -10,10 +9,13 @@ import org.springframework.web.context.request.async.DeferredResult;
 
 @Controller
 @RequestMapping(path = "/v1")
-@AllArgsConstructor
 public class AgentController {
 
     private final AgentServiceImpl agentService;
+
+    public AgentController(AgentServiceImpl agentService) {
+        this.agentService = agentService;
+    }
 
     @GetMapping("/agents/{id}")
     public DeferredResult<ResponseEntity<?>>  getAgent(@PathVariable("id") String id) {

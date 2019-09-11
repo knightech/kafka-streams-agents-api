@@ -29,5 +29,5 @@ spec:
       route:
         - destination:
             port:
-              number: 8000
+              number: 8009
             host: agents
