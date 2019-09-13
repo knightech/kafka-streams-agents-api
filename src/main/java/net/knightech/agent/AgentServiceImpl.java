@@ -22,6 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.context.request.async.DeferredResult;
 
 import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Map;
@@ -253,15 +254,18 @@ public class AgentServiceImpl implements AgentService {
   }
 
   @PostConstruct
-  public void initBroker() throws Exception {
+  public void init() throws Exception {
 
     final String bootstrapServers = "http://192.168.5.31:9092";
     final String schemaRegistryUrl = "http://192.168.5.31:8081";
-    final String restHostname = "http://192.168.5.31";
-    final String restPort = "8001";
-
     Schemas.configureSerdesWithSchemaRegistryUrl(schemaRegistryUrl);
     start(bootstrapServers, "/tmp/kafka-streams");
-    addShutdownHookAndBlock(this);
   }
+
+  @PreDestroy
+  public void teardown() {
+    streams.close();
+    streams.cleanUp();
+  }
+
 }

@@ -1,11 +1,15 @@
 package net.knightech.agent.domain.beans;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import net.knightech.agent.Agent;
 
 @Builder
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class AgentBean {
 
   private String id;

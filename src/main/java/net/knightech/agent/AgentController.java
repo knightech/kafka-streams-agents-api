@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.context.request.async.DeferredResult;
 
 
-@Controller
+@RestController
 @RequestMapping(path = "/v1")
 public class AgentController {
 

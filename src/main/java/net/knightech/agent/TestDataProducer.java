@@ -21,7 +21,7 @@ public class TestDataProducer {
         producerConfig.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, "true");
         producerConfig.put(ProducerConfig.RETRIES_CONFIG, String.valueOf(Integer.MAX_VALUE));
         producerConfig.put(ProducerConfig.ACKS_CONFIG, "all");
-        producerConfig.put(ProducerConfig.CLIENT_ID_CONFIG, "order-sender");
+        producerConfig.put(ProducerConfig.CLIENT_ID_CONFIG, "agents-sender");
 
         return new KafkaProducer<>(producerConfig,
                 topic.keySerde().serializer(),
