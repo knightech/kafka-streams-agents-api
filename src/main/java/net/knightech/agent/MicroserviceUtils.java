@@ -3,6 +3,8 @@ package net.knightech.agent;
 import lombok.extern.slf4j.Slf4j;
 import net.knightech.agent.domain.Schemas;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.state.RocksDBConfigSetter;
 import org.rocksdb.Options;
@@ -68,27 +70,19 @@ public class MicroserviceUtils {
     }
   }
 
-  public static void setTimeout(final long timeout, final AsyncResponse asyncResponse) {
-    asyncResponse.setTimeout(timeout, TimeUnit.MILLISECONDS);
-    asyncResponse.setTimeoutHandler(resp -> resp.resume(
-            Response.status(Response.Status.GATEWAY_TIMEOUT)
-                    .entity("HTTP GET timed out after " + timeout + " ms\n")
-                    .build()));
+  public static <T> KafkaProducer startProducer(final String bootstrapServers,
+                                                final Schemas.Topic<String, T> topic) {
+    final Properties producerConfig = new Properties();
+    producerConfig.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+    producerConfig.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, "true");
+    producerConfig.put(ProducerConfig.RETRIES_CONFIG, String.valueOf(Integer.MAX_VALUE));
+    producerConfig.put(ProducerConfig.ACKS_CONFIG, "all");
+    producerConfig.put(ProducerConfig.CLIENT_ID_CONFIG, "order-sender");
+
+    return new KafkaProducer<>(producerConfig,
+            topic.keySerde().serializer(),
+            topic.valueSerde().serializer());
   }
 
-  public static void addShutdownHookAndBlock(final AgentService service) throws InterruptedException {
 
-    Thread.currentThread().setUncaughtExceptionHandler((t, e) -> service.stop());
-
-    Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-
-      try {
-        service.stop();
-      } catch (final Exception ignored) {
-      }
-
-    }));
-
-    Thread.currentThread().join();
-  }
 }

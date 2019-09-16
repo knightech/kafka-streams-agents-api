@@ -30,8 +30,7 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 
-import static net.knightech.agent.MicroserviceUtils.addShutdownHookAndBlock;
-import static net.knightech.agent.MicroserviceUtils.baseStreamsConfig;
+import static net.knightech.agent.MicroserviceUtils.*;
 import static net.knightech.agent.domain.Schemas.Topics.AGENTS;
 import static net.knightech.agent.domain.beans.AgentBean.fromBean;
 import static net.knightech.agent.domain.beans.AgentBean.toBean;
@@ -205,13 +204,13 @@ public class AgentServiceImpl implements AgentService {
     metadataService = new MetadataService(streams);
     streams.cleanUp(); //don't do this in prod as it clears your state stores
     streams.start();
-
+    producer = startProducer(bootstrapServers, AGENTS);
     return streams;
   }
 
   private Properties config(final String bootstrapServers) {
     final Properties props = baseStreamsConfig(bootstrapServers, "/tmp/kafka-streams", SERVICE_APP_ID);
-    props.put(StreamsConfig.APPLICATION_SERVER_CONFIG, "localhost" + ":" + "8001");
+    props.put(StreamsConfig.APPLICATION_SERVER_CONFIG, "localhost" + ":" + "8009");
     return props;
   }
 
@@ -264,8 +263,7 @@ public class AgentServiceImpl implements AgentService {
 
   @PreDestroy
   public void teardown() {
-    streams.close();
-    streams.cleanUp();
+    this.stop();
   }
 
 }
