@@ -1,11 +1,16 @@
 package net.knightech.agent;
 
+import io.micrometer.core.instrument.util.StringUtils;
 import lombok.extern.slf4j.Slf4j;
 import net.knightech.agent.domain.Schemas;
 import net.knightech.agent.domain.beans.AgentBean;
+import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.admin.CreateTopicsOptions;
+import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsBuilder;
@@ -25,10 +30,9 @@ import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Properties;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 
 import static net.knightech.agent.MicroserviceUtils.*;
 import static net.knightech.agent.domain.Schemas.Topics.AGENTS;
@@ -198,19 +202,61 @@ public class AgentServiceImpl implements AgentService {
 
   private KafkaStreams startKStreams(final String bootstrapServers) {
 
+
+    Properties config = config(bootstrapServers);
+
+    int partitions = 3;
+    short replicationFactor = 1;
+
+    Set<NewTopic> agentsTopic = Collections.singleton(new NewTopic("agents", partitions, replicationFactor));
+    CreateTopicsOptions topicsOptions = new CreateTopicsOptions().timeoutMs(10000);
+
+
+    log.info("Get adminclient ");
+
+    AdminClient adminClient = AdminClient.create(config);
+
+    try {
+
+      if(!adminClient.listTopics().names().get().contains("agents")) {
+
+        log.info("Creating Agents topic ");
+
+        KafkaFuture<Void> all =
+                adminClient
+                        .createTopics(agentsTopic, topicsOptions)
+                        .all();
+
+        all.get();
+      }
+
+      log.info("Confirming agents topic exists {}", adminClient.describeTopics(Collections.singleton("agents")));
+
+    } catch (InterruptedException | ExecutionException e) {
+      e.printStackTrace();
+      throw new RuntimeException(e.getMessage());
+    }
+
     final KafkaStreams streams = new KafkaStreams(
             createAgentsMaterializedView().build(),
-            config(bootstrapServers));
+            config);
+
     metadataService = new MetadataService(streams);
     streams.cleanUp(); //don't do this in prod as it clears your state stores
     streams.start();
+
     producer = startProducer(bootstrapServers, AGENTS);
+
     return streams;
   }
 
   private Properties config(final String bootstrapServers) {
     final Properties props = baseStreamsConfig(bootstrapServers, "/tmp/kafka-streams", SERVICE_APP_ID);
-    props.put(StreamsConfig.APPLICATION_SERVER_CONFIG, "localhost" + ":" + "8009");
+    String my_pod_ip = System.getenv("MY_POD_IP");
+
+    String host = StringUtils.isBlank(my_pod_ip) ? "localhost" : my_pod_ip;
+
+    props.put(StreamsConfig.APPLICATION_SERVER_CONFIG, host + ":" + "8009");
     return props;
   }
 

@@ -43,10 +43,10 @@ public class MicroserviceUtils {
                                              final boolean enableEOS) {
     Properties config = new Properties();
     // Workaround for a known issue with RocksDB in environments where you have only 1 cpu core.
-    config.put(StreamsConfig.ROCKSDB_CONFIG_SETTER_CLASS_CONFIG, CustomRocksDBConfig.class);
+    //config.put(StreamsConfig.ROCKSDB_CONFIG_SETTER_CLASS_CONFIG, CustomRocksDBConfig.class);
     config.put(StreamsConfig.APPLICATION_ID_CONFIG, appId);
     config.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-    config.put(StreamsConfig.STATE_DIR_CONFIG, stateDir);
+    //config.put(StreamsConfig.STATE_DIR_CONFIG, stateDir);
     config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
     final String processingGuaranteeConfig = enableEOS ? "exactly_once" : "at_least_once";
     config.put(StreamsConfig.PROCESSING_GUARANTEE_CONFIG, processingGuaranteeConfig);

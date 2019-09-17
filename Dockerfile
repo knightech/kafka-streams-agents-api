@@ -1,4 +1,5 @@
-FROM openjdk:8-jdk-alpine
+FROM openjdk:8
+
 ENV APP_FILE kafka-streams-agents-api-1.0.0.jar
 ENV APP_HOME /usr/app
 

@@ -7,7 +7,7 @@ metadata:
 spec:
   ports:
     - name: http
-      port: 8001
+      port: 8009
   selector:
     app: agents
 ---
@@ -28,18 +28,39 @@ spec:
     spec:
       containers:
         - name: agents
-          image: petecknight/agents:1.0.0
+          image: petecknight/agents:2.0.0
           ports:
             - containerPort: 8009
+          env:
+            - name: MY_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: MY_NODE_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIP
+            - name: MY_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: MY_POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: MY_POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
           readinessProbe:
             httpGet:
-              path: /
+              path: /actuator/health
               port: 8009
             initialDelaySeconds: 20
             periodSeconds: 5
           livenessProbe:
             httpGet:
-              path: /
+              path: /actuator/health
               port: 8009
             initialDelaySeconds: 20
             periodSeconds: 5

@@ -13,7 +13,6 @@ public class TestDataProducer {
 
     }
 
-
     public static <T> KafkaProducer startProducer(final String bootstrapServers,
                                                   final Schemas.Topic<String, T> topic) {
         final Properties producerConfig = new Properties();
